@@ -12,6 +12,7 @@
 		0F7E664CF857C706119153BA /* LayoutFixerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 920EF1C86216D2FB00A0E57E /* LayoutFixerApp.swift */; };
 		17112D313DFED7F0947313D8 /* AXPermissionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7C759F5F89D68049AEF7E34 /* AXPermissionManager.swift */; };
 		2434C3101985E2045AC03FAE /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3F0D40BF3F43D57926A7446A /* Assets.xcassets */; };
+		2DA7A9E318DB99964B45A4A6 /* InputSourceSwitcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A75B491755B01823898014D /* InputSourceSwitcher.swift */; };
 		40F2698E91A2C23729E597B7 /* FixOrchestrator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 466F4B2CA5594A42674E7B52 /* FixOrchestrator.swift */; };
 		4A32B4DEECAF7A7B35EA219F /* LoginItemManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 009E789DA0CC7ECA8069A5B7 /* LoginItemManager.swift */; };
 		5A5E3E0DC77AF08D7535E5C6 /* HotkeyDefinition.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7751818FB1FDFE43E8F748EC /* HotkeyDefinition.swift */; };
@@ -53,9 +54,10 @@
 		5492F0B306F6B43E82B1E521 /* LayoutConverterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutConverterTests.swift; sourceTree = "<group>"; };
 		75A8DB784D1FEF65002BCB6D /* LayoutConverter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutConverter.swift; sourceTree = "<group>"; };
 		7751818FB1FDFE43E8F748EC /* HotkeyDefinition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyDefinition.swift; sourceTree = "<group>"; };
-		8820A4332ADA1291516455D9 /* LayoutFixer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LayoutFixer.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		8820A4332ADA1291516455D9 /* LayoutSwitcher_CC.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LayoutSwitcher_CC.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		8CD5CAFD282B4D50F51DBCDD /* AXTextWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AXTextWriter.swift; sourceTree = "<group>"; };
 		920EF1C86216D2FB00A0E57E /* LayoutFixerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutFixerApp.swift; sourceTree = "<group>"; };
+		9A75B491755B01823898014D /* InputSourceSwitcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputSourceSwitcher.swift; sourceTree = "<group>"; };
 		B4B4360952911A7437015EB8 /* AXTextReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AXTextReader.swift; sourceTree = "<group>"; };
 		B9C1E69B24F74B2AE953475F /* SoundPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundPlayer.swift; sourceTree = "<group>"; };
 		CC3F18C84E3AE1496A90B7A5 /* DirectionDetectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectionDetectorTests.swift; sourceTree = "<group>"; };
@@ -151,7 +153,7 @@
 		4DEB6B096F49366CF2AE91B3 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				8820A4332ADA1291516455D9 /* LayoutFixer.app */,
+				8820A4332ADA1291516455D9 /* LayoutSwitcher_CC.app */,
 				F2B3B4A18285DCF998AA5A60 /* LayoutFixerTests.xctest */,
 			);
 			name = Products;
@@ -163,6 +165,7 @@
 				7751818FB1FDFE43E8F748EC /* HotkeyDefinition.swift */,
 				41AD727FBC2D14BC81C54854 /* HotkeyManager.swift */,
 				FD38543F5EA00614507E4137 /* HotkeyRecorder.swift */,
+				9A75B491755B01823898014D /* InputSourceSwitcher.swift */,
 			);
 			path = Hotkey;
 			sourceTree = "<group>";
@@ -246,7 +249,7 @@
 			packageProductDependencies = (
 			);
 			productName = LayoutFixer;
-			productReference = 8820A4332ADA1291516455D9 /* LayoutFixer.app */;
+			productReference = 8820A4332ADA1291516455D9 /* LayoutSwitcher_CC.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -256,7 +259,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 1600;
+				LastUpgradeCheck = 2630;
 				TargetAttributes = {
 					2B4DB7CE96A83D85392EFD8A = {
 						DevelopmentTeam = "";
@@ -330,6 +333,7 @@
 				5A5E3E0DC77AF08D7535E5C6 /* HotkeyDefinition.swift in Sources */,
 				057BBDA337F738B109F4DAA1 /* HotkeyManager.swift in Sources */,
 				B4C5D283956BA0B4948B8E6B /* HotkeyRecorder.swift in Sources */,
+				2DA7A9E318DB99964B45A4A6 /* InputSourceSwitcher.swift in Sources */,
 				CFFD2E89E5440BF68A058688 /* LayoutConverter.swift in Sources */,
 				0F7E664CF857C706119153BA /* LayoutFixerApp.swift in Sources */,
 				6BE4E05CC5D08BBB661D79E1 /* LayoutMapping.swift in Sources */,
@@ -379,10 +383,13 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -403,9 +410,10 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				SWIFT_VERSION = 5.1;
+				SWIFT_VERSION = 5.10;
 			};
 			name = Debug;
 		};
@@ -463,10 +471,13 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -480,9 +491,10 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
-				SWIFT_VERSION = 5.1;
+				SWIFT_VERSION = 5.10;
 			};
 			name = Release;
 		};

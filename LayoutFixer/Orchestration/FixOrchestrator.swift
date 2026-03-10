@@ -170,7 +170,10 @@ class FixOrchestrator {
         return NSPasteboard.general.string(forType: .string)
     }
 
+    private let inputSwitcher = InputSourceSwitcher()
+
     private func feedback(direction: ConversionDirection) {
+        inputSwitcher.switchTo(direction)
         if settings.soundEnabled {
             soundPlayer.play(name: settings.soundName, volume: settings.soundVolume)
         }

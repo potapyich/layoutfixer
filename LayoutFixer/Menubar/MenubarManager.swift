@@ -19,8 +19,8 @@ class MenubarManager: NSObject, NSMenuDelegate {
 
         super.init()
 
-        statusItem.button?.image = NSImage(named: "MenubarIcon") ?? NSImage(systemSymbolName: "keyboard", accessibilityDescription: nil)
-        statusItem.button?.image?.isTemplate = true
+        let icon = StatusIconAnimator.defaultIcon()
+        statusItem.button?.image = icon
         statusItem.menu = buildMenu()
     }
 
