@@ -23,6 +23,12 @@ final class AppSettings {
     @ObservationIgnored
     @AppStorage("activeLayouts") private var activeLayoutsData: Data = Data()
 
+    /// Tracked by @Observable so views re-render when activeLayouts changes.
+    /// Incrementing this in the setter is the signal that triggers observation.
+    /// (activeLayoutsData itself is @ObservationIgnored, so without this counter
+    /// SwiftUI never knows the computed activeLayouts property changed.)
+    private var activeLayoutsVersion = 0
+
     // MARK: - Computed
 
     var hotkey: HotkeyDefinition {
@@ -34,6 +40,7 @@ final class AppSettings {
     /// Defaults to whatever macOS has installed (EN + first other language).
     var activeLayouts: [LayoutInfo] {
         get {
+            _ = activeLayoutsVersion   // register view as observer of this property
             if !activeLayoutsData.isEmpty,
                let decoded = try? JSONDecoder().decode([LayoutInfo].self, from: activeLayoutsData),
                !decoded.isEmpty {
@@ -43,6 +50,7 @@ final class AppSettings {
         }
         set {
             activeLayoutsData = (try? JSONEncoder().encode(newValue)) ?? Data()
+            activeLayoutsVersion &+= 1  // notify observers
         }
     }
 }

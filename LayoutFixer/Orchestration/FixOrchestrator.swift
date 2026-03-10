@@ -116,15 +116,18 @@ class FixOrchestrator {
     /// Phase 1: ⌘C — captures an existing user selection.
     ///   VS Code/Electron line-copy always ends with \n, so we reject those.
     /// Phase 2: ⌥⇧← + ⌘C — selects the previous word (last-word mode).
+    ///
+    /// Both phases use clipboard-change polling (10 ms intervals, 300 ms max)
+    /// instead of a fixed 150 ms sleep — so the lock is released as soon as
+    /// the target app actually processes ⌘C, typically in 20–50 ms.
     private func keyboardFallback(pair: LayoutCycleManager.Pair) async {
         let savedClipboard = clipboard.saveClipboard()
 
         // ── Phase 1 ────────────────────────────────────────────────────────────
         let pre1 = NSPasteboard.general.changeCount
         postKey(keyCode: 8, flags: .maskCommand) // ⌘C
-        try? await Task.sleep(nanoseconds: 150_000_000)
 
-        if let word = clipboardString(ifChangedFrom: pre1),
+        if let word = await pollClipboard(ifChangedFrom: pre1),
            !word.hasSuffix("\n"), !word.hasSuffix("\r") {
             logger.debug("Keyboard fallback (selection): \(word)")
             await pasteConverted(word: word, pair: pair, savedClipboard: savedClipboard)
@@ -132,13 +135,14 @@ class FixOrchestrator {
         }
 
         // ── Phase 2 ────────────────────────────────────────────────────────────
-        let pre2 = NSPasteboard.general.changeCount
         postKey(keyCode: 123, flags: [.maskAlternate, .maskShift]) // ⌥⇧←
-        try? await Task.sleep(nanoseconds: 80_000_000)
-        postKey(keyCode: 8, flags: .maskCommand) // ⌘C
-        try? await Task.sleep(nanoseconds: 150_000_000)
+        // Short fixed wait for the selection to take effect (no observable signal).
+        try? await Task.sleep(nanoseconds: 60_000_000) // 60 ms
 
-        guard let word = clipboardString(ifChangedFrom: pre2), !word.isEmpty else {
+        let pre2 = NSPasteboard.general.changeCount
+        postKey(keyCode: 8, flags: .maskCommand) // ⌘C
+
+        guard let word = await pollClipboard(ifChangedFrom: pre2), !word.isEmpty else {
             logger.debug("Keyboard fallback: nothing to convert")
             postKey(keyCode: 124, flags: []) // ⇒ collapse ⌥⇧← selection
             clipboard.restoreClipboard(savedClipboard)
@@ -147,6 +151,20 @@ class FixOrchestrator {
 
         logger.debug("Keyboard fallback (last word): \(word)")
         await pasteConverted(word: word, pair: pair, savedClipboard: savedClipboard)
+    }
+
+    /// Polls NSPasteboard.changeCount every 10 ms until it changes or 300 ms elapses.
+    /// Returns the new clipboard string immediately when the change is detected.
+    private func pollClipboard(ifChangedFrom before: Int) async -> String? {
+        let pollNs: UInt64 = 10_000_000   // 10 ms per tick
+        let maxTicks = 30                  // 30 × 10 ms = 300 ms max wait
+        for _ in 0..<maxTicks {
+            if NSPasteboard.general.changeCount != before {
+                return NSPasteboard.general.string(forType: .string)
+            }
+            try? await Task.sleep(nanoseconds: pollNs)
+        }
+        return nil
     }
 
     private func pasteConverted(word: String, pair: LayoutCycleManager.Pair,
@@ -183,11 +201,6 @@ class FixOrchestrator {
         up?.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: &utf16)
         down?.post(tap: .cgAnnotatedSessionEventTap)
         up?.post(tap: .cgAnnotatedSessionEventTap)
-    }
-
-    private func clipboardString(ifChangedFrom pre: Int) -> String? {
-        guard NSPasteboard.general.changeCount != pre else { return nil }
-        return NSPasteboard.general.string(forType: .string)
     }
 
     private func feedback(pair: LayoutCycleManager.Pair) {
