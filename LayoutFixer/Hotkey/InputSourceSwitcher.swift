@@ -44,13 +44,14 @@ class InputSourceManager {
 
     // MARK: - Available layouts
 
-    /// All currently enabled, selectable keyboard input sources installed on this Mac.
+    /// Keyboard input sources the user has added in System Settings → Keyboard → Input Sources.
+    /// Uses `kTISPropertyInputSourceIsSelected` (user's active list) instead of
+    /// `kTISPropertyInputSourceIsEnabled` (every layout macOS ships, 20+ US variants).
     /// Also populates the QWERTY cache for all returned sources.
     func availableLayouts() -> [LayoutInfo] {
         let filter: [String: Any] = [
             kTISPropertyInputSourceCategory as String: kTISCategoryKeyboardInputSource as String,
-            kTISPropertyInputSourceIsEnabled as String: true,
-            kTISPropertyInputSourceIsSelectCapable as String: true,
+            kTISPropertyInputSourceIsSelected as String: true,
         ]
         let sources = TISCreateInputSourceList(filter as CFDictionary, false)
             .takeRetainedValue() as! [TISInputSource]
