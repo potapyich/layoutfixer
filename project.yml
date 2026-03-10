@@ -33,22 +33,23 @@ targets:
     info:
       path: LayoutFixer/Resources/Info.plist
       properties:
-        CFBundleName: LayoutFixer
-        CFBundleDisplayName: LayoutFixer
-        CFBundleIdentifier: com.yourname.LayoutFixer
+        CFBundleName: LayoutSwitcher_CC
+        CFBundleDisplayName: LayoutSwitcher_CC
+        CFBundleIdentifier: com.yourname.LayoutSwitcherCC
         CFBundleVersion: "1"
         CFBundleShortVersionString: "1.0"
         CFBundleExecutable: $(EXECUTABLE_NAME)
         CFBundlePackageType: APPL
         NSPrincipalClass: NSApplication
         LSUIElement: true
-        NSAccessibilityUsageDescription: "LayoutFixer needs Accessibility access to read and replace text in other applications."
+        NSAccessibilityUsageDescription: "LayoutSwitcher_CC needs Accessibility access to read and replace text in other applications."
         LSApplicationCategoryType: public.app-category.utilities
     entitlements:
       path: LayoutFixer/Resources/LayoutFixer.entitlements
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.yourname.LayoutFixer
+        PRODUCT_BUNDLE_IDENTIFIER: com.yourname.LayoutSwitcherCC
+        PRODUCT_NAME: LayoutSwitcher_CC
         INFOPLIST_FILE: LayoutFixer/Resources/Info.plist
         CODE_SIGN_ENTITLEMENTS: LayoutFixer/Resources/LayoutFixer.entitlements
         ENABLE_APP_SANDBOX: NO

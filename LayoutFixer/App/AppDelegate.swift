@@ -1,11 +1,13 @@
 import AppKit
 import SwiftUI
 
+@Observable
 class AppDelegate: NSObject, NSApplicationDelegate {
     let settings = AppSettings()
     var menubarManager: MenubarManager?
     var hotkeyManager: HotkeyManager?
     var orchestrator: FixOrchestrator?
+    var openSettingsTrigger: Int = 0
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let axPermission = AXPermissionManager()
@@ -28,7 +30,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         )
         self.orchestrator = orchestrator
 
-        let menubarManager = MenubarManager(settings: settings, orchestrator: orchestrator)
+        let menubarManager = MenubarManager(settings: settings, orchestrator: orchestrator, openSettings: { [weak self] in
+            self?.openSettingsTrigger += 1
+        })
         self.menubarManager = menubarManager
 
         orchestrator.statusIconAnimator = menubarManager.statusIconAnimator
@@ -42,5 +46,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         hotkeyManager.enable()
 
         LoginItemManager.shared.registerIfNeeded(settings: settings)
+
+        // Prompt for AX permission on first launch so the event tap can be installed
+        let noPromptOptions = [kAXTrustedCheckOptionPrompt.takeRetainedValue(): false] as NSDictionary
+        if !AXIsProcessTrustedWithOptions(noPromptOptions) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                let promptOptions = [kAXTrustedCheckOptionPrompt.takeRetainedValue(): true] as NSDictionary
+                AXIsProcessTrustedWithOptions(promptOptions)
+            }
+        }
     }
 }

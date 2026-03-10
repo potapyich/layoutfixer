@@ -6,42 +6,62 @@ struct HotkeyRecorder: NSViewRepresentable {
 
     func makeNSView(context: Context) -> HotkeyRecorderView {
         let view = HotkeyRecorderView()
-        view.onHotkeyChanged = { newHotkey in
-            hotkey = newHotkey
-        }
         view.currentHotkey = hotkey
+        view.onHotkeyChanged = { newHotkey in hotkey = newHotkey }
         return view
     }
 
     func updateNSView(_ nsView: HotkeyRecorderView, context: Context) {
-        nsView.currentHotkey = hotkey
-        nsView.onHotkeyChanged = { newHotkey in
-            hotkey = newHotkey
+        if nsView.currentHotkey != hotkey {
+            nsView.currentHotkey = hotkey
         }
+        nsView.onHotkeyChanged = { newHotkey in hotkey = newHotkey }
     }
 }
 
 class HotkeyRecorderView: NSView {
-    enum State {
-        case idle
-        case recording
-    }
+    enum RecordingState { case idle, recording }
 
     var currentHotkey: HotkeyDefinition = .default {
-        didSet { updateDisplay() }
+        didSet { refreshDisplay() }
     }
     var onHotkeyChanged: ((HotkeyDefinition) -> Void)?
 
-    private var recordingState: State = .idle
-    private var conflictWarning = false
+    private var state: RecordingState = .idle
 
-    private let label = NSTextField(labelWithString: "")
-    private let warningLabel = NSTextField(labelWithString: "")
+    // Always shows the current hotkey (large, prominent)
+    private let hotkeyLabel: NSTextField = {
+        let f = NSTextField(labelWithString: "")
+        f.translatesAutoresizingMaskIntoConstraints = false
+        f.alignment = .center
+        f.font = .monospacedSystemFont(ofSize: 14, weight: .semibold)
+        return f
+    }()
 
-    private let systemConflicts: Set<String> = ["⌘ Space", "⌃ Space", "⌘ Tab", "⌘ Q", "⌘ W", "⌘ H", "⌘ M"]
+    // Secondary hint below the hotkey
+    private let hintLabel: NSTextField = {
+        let f = NSTextField(labelWithString: "")
+        f.translatesAutoresizingMaskIntoConstraints = false
+        f.alignment = .center
+        f.font = .systemFont(ofSize: 10)
+        f.textColor = .secondaryLabelColor
+        return f
+    }()
 
-    override init(frame frameRect: NSRect) {
-        super.init(frame: frameRect)
+    private let warningLabel: NSTextField = {
+        let f = NSTextField(labelWithString: "")
+        f.translatesAutoresizingMaskIntoConstraints = false
+        f.font = .systemFont(ofSize: 11)
+        f.textColor = .systemOrange
+        return f
+    }()
+
+    private let systemConflicts: Set<String> = [
+        "⌘ Space", "⌃ Space", "⌘ Tab", "⌘ Q", "⌘ W", "⌘ H", "⌘ M"
+    ]
+
+    override init(frame: NSRect) {
+        super.init(frame: frame)
         setup()
     }
 
@@ -52,40 +72,70 @@ class HotkeyRecorderView: NSView {
 
     private func setup() {
         wantsLayer = true
-        layer?.cornerRadius = 6
-        layer?.borderWidth = 1
-        layer?.borderColor = NSColor.separatorColor.cgColor
+        layer?.cornerRadius = 7
+        layer?.borderWidth = 1.5
 
-        label.translatesAutoresizingMaskIntoConstraints = false
-        warningLabel.translatesAutoresizingMaskIntoConstraints = false
-        warningLabel.textColor = .systemOrange
-        warningLabel.font = .systemFont(ofSize: 11)
-
-        addSubview(label)
+        addSubview(hotkeyLabel)
+        addSubview(hintLabel)
         addSubview(warningLabel)
 
         NSLayoutConstraint.activate([
-            label.centerYAnchor.constraint(equalTo: centerYAnchor),
-            label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
-            label.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
-            warningLabel.topAnchor.constraint(equalTo: bottomAnchor, constant: 2),
+            hotkeyLabel.centerXAnchor.constraint(equalTo: centerXAnchor),
+            hotkeyLabel.centerYAnchor.constraint(equalTo: centerYAnchor, constant: -7),
+
+            hintLabel.centerXAnchor.constraint(equalTo: centerXAnchor),
+            hintLabel.topAnchor.constraint(equalTo: hotkeyLabel.bottomAnchor, constant: 3),
+
+            warningLabel.topAnchor.constraint(equalTo: bottomAnchor, constant: 3),
             warningLabel.leadingAnchor.constraint(equalTo: leadingAnchor),
         ])
 
-        updateDisplay()
+        refreshDisplay()
+        applyAppearance()
     }
+
+    private func refreshDisplay() {
+        switch state {
+        case .idle:
+            hotkeyLabel.stringValue = currentHotkey.displayString
+            hotkeyLabel.textColor = .labelColor
+            hintLabel.stringValue = "Click to record"
+        case .recording:
+            // Keep showing the current hotkey so user knows what they're replacing
+            hotkeyLabel.stringValue = currentHotkey.displayString
+            hotkeyLabel.textColor = .secondaryLabelColor
+            hintLabel.stringValue = "Press new shortcut… (Esc to cancel, ⌫ to reset)"
+        }
+    }
+
+    private func applyAppearance() {
+        switch state {
+        case .idle:
+            layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
+            layer?.borderColor = NSColor.separatorColor.cgColor
+        case .recording:
+            layer?.backgroundColor = NSColor.controlAccentColor.withAlphaComponent(0.08).cgColor
+            layer?.borderColor = NSColor.controlAccentColor.cgColor
+        }
+    }
+
+    // MARK: - First responder & input
 
     override var acceptsFirstResponder: Bool { true }
 
     override func mouseDown(with event: NSEvent) {
-        window?.makeFirstResponder(self)
-        startRecording()
+        // Only start recording on an explicit click, never on tab-focus alone
+        if state == .idle {
+            window?.makeFirstResponder(self)
+            startRecording()
+        }
     }
 
+    // Do NOT start recording in becomeFirstResponder — that fires on tab/window activation
     override func becomeFirstResponder() -> Bool {
-        let result = super.becomeFirstResponder()
-        if result { startRecording() }
-        return result
+        let ok = super.becomeFirstResponder()
+        if ok { applyAppearance() }
+        return ok
     }
 
     override func resignFirstResponder() -> Bool {
@@ -94,70 +144,59 @@ class HotkeyRecorderView: NSView {
     }
 
     private func startRecording() {
-        recordingState = .recording
-        layer?.borderColor = NSColor.controlAccentColor.cgColor
-        label.stringValue = "Press shortcut…"
+        state = .recording
+        applyAppearance()
+        refreshDisplay()
     }
 
     private func stopRecording() {
-        recordingState = .idle
-        layer?.borderColor = NSColor.separatorColor.cgColor
-        updateDisplay()
-    }
-
-    private func updateDisplay() {
-        guard recordingState == .idle else { return }
-        label.stringValue = currentHotkey.displayString
+        state = .idle
+        applyAppearance()
+        refreshDisplay()
     }
 
     override func keyDown(with event: NSEvent) {
-        guard recordingState == .recording else {
+        guard state == .recording else {
             super.keyDown(with: event)
             return
         }
 
         let keyCode = UInt16(event.keyCode)
 
-        if keyCode == 53 { // Escape
-            stopRecording()
+        if keyCode == 53 { // Escape — cancel, keep existing hotkey
+            window?.makeFirstResponder(nil)
             return
         }
 
-        if keyCode == 51 || keyCode == 117 { // Delete/Backspace
-            let defaultHotkey = HotkeyDefinition.default
-            currentHotkey = defaultHotkey
-            onHotkeyChanged?(defaultHotkey)
-            stopRecording()
+        if keyCode == 51 || keyCode == 117 { // Delete/Backspace — reset to default
+            currentHotkey = .default
+            onHotkeyChanged?(.default)
+            warningLabel.stringValue = ""
+            window?.makeFirstResponder(nil)
             return
         }
 
-        let modifiers = event.modifierFlags
-        let relevantMods = modifiers.intersection([.control, .option, .command, .shift])
-        guard !relevantMods.isEmpty else { return }
+        let mods = event.modifierFlags.intersection([.control, .option, .command, .shift])
+        guard !mods.isEmpty else { return } // Require at least one modifier
 
         var cgFlags: UInt64 = 0
-        if modifiers.contains(.control) { cgFlags |= CGEventFlags.maskControl.rawValue }
-        if modifiers.contains(.option)  { cgFlags |= CGEventFlags.maskAlternate.rawValue }
-        if modifiers.contains(.command) { cgFlags |= CGEventFlags.maskCommand.rawValue }
-        if modifiers.contains(.shift)   { cgFlags |= CGEventFlags.maskShift.rawValue }
+        if mods.contains(.control) { cgFlags |= CGEventFlags.maskControl.rawValue }
+        if mods.contains(.option)  { cgFlags |= CGEventFlags.maskAlternate.rawValue }
+        if mods.contains(.command) { cgFlags |= CGEventFlags.maskCommand.rawValue }
+        if mods.contains(.shift)   { cgFlags |= CGEventFlags.maskShift.rawValue }
 
         let newHotkey = HotkeyDefinition(keyCode: keyCode, modifierFlags: cgFlags)
-        checkConflict(newHotkey)
+        warningLabel.stringValue = systemConflicts.contains(newHotkey.displayString)
+            ? "⚠️ Conflicts with a system shortcut"
+            : ""
+
         currentHotkey = newHotkey
         onHotkeyChanged?(newHotkey)
-        stopRecording()
+        window?.makeFirstResponder(nil)
     }
 
-    private func checkConflict(_ hotkey: HotkeyDefinition) {
-        let display = hotkey.displayString
-        if systemConflicts.contains(display) {
-            warningLabel.stringValue = "⚠️ Conflicts with a system shortcut"
-        } else {
-            warningLabel.stringValue = ""
-        }
-    }
+    override var intrinsicContentSize: NSSize { NSSize(width: 240, height: 52) }
 
-    override var intrinsicContentSize: NSSize {
-        NSSize(width: 200, height: 28)
-    }
+    override func updateLayer() { applyAppearance() }
+    override func viewDidChangeEffectiveAppearance() { super.viewDidChangeEffectiveAppearance(); applyAppearance() }
 }

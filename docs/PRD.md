@@ -319,3 +319,241 @@ System Settings → Privacy & Security → Accessibility
 - [ ] Auto switch layout after conversion
 - [ ] Custom sound selection (user-provided files)
 - [ ] Dedicated onboarding window (welcome → permission → done)
+
+## 18. Behavioral Test Cases
+
+Этот раздел описывает набор ручных тестов (edge cases), которые должны
+всегда корректно работать. Они используются как основной regression
+набор при разработке.
+
+Если изменение ломает один из этих сценариев — это считается багом.
+
+---
+
+### 18.1 Last Word Conversion
+
+**Case 1 — Single word**
+
+```
+Input:
+тест|
+
+Hotkey →
+
+Expected:
+ntcn|
+```
+
+---
+
+**Case 2 — Two words**
+
+```
+Input:
+тест тест|
+
+Hotkey →
+
+Expected:
+тест ntcn|
+```
+
+Конвертируется **только последнее слово**.
+
+---
+
+**Case 3 — Newline boundary**
+
+```
+Input:
+тест
+тест|
+
+Hotkey →
+
+Expected:
+тест
+ntcn|
+```
+
+Последний токен определяется **относительно каретки**, а не строки.
+
+---
+
+### 18.2 Explicit Selection
+
+Если пользователь выделил текст — конвертируется именно выделение.
+
+---
+
+**Case 4 — Single word selection**
+
+```
+Input:
+<тест>
+
+Hotkey →
+
+Expected:
+ntcn
+```
+
+---
+
+**Case 5 — Multi-word selection**
+
+```
+Input:
+<тест тест>
+
+Hotkey →
+
+Expected:
+ntcn ntcn
+```
+
+---
+
+**Case 6 — Selection inside sentence**
+
+```
+Input:
+hello <тест> world
+
+Hotkey →
+
+Expected:
+hello ntcn world
+```
+
+Остальной текст не должен изменяться.
+
+---
+
+### 18.3 Clipboard Safety
+
+Clipboard пользователя не должен изменяться.
+
+```
+Clipboard before:
+ABC
+
+User converts text
+
+Clipboard after:
+ABC
+```
+
+---
+
+### 18.4 Trailing Newline Artifact
+
+Некоторые приложения (например VS Code) добавляют newline при копировании.
+
+```
+Copied text:
+"тест\n"
+```
+
+Ожидаемое поведение:
+
+```
+Normalized:
+"тест"
+```
+
+Удаляются **только хвостовые newline**, но не newline внутри текста.
+
+---
+
+### 18.5 Multiline Selection
+
+```
+Input:
+<тест
+тест>
+
+Hotkey →
+
+Expected:
+ntcn
+ntcn
+```
+
+---
+
+### 18.6 Punctuation Safety
+
+В v1 знаки препинания не входят в токен.
+
+```
+Input:
+тест,|
+
+Hotkey →
+
+Expected:
+ntcn,|
+```
+
+Delimiter для v1:
+
+```
+space
+tab
+newline
+```
+
+---
+
+### 18.7 Cursor Position Guarantee
+
+Курсор должен оставаться в логически ожидаемой позиции.
+
+```
+Input:
+hello тест|
+
+Hotkey →
+
+Expected:
+hello ntcn|
+```
+
+---
+
+### 18.8 No Duplication Guarantee
+
+Неверное поведение:
+
+```
+тест|
+Hotkey →
+
+ntcnтест
+```
+
+Правильное поведение:
+
+```
+тест|
+Hotkey →
+
+ntcn|
+```
+
+---
+
+### 18.9 Silent Failure Behavior
+
+Если приложение не может получить текст из поля через Accessibility API:
+
+```
+Result → silent no-op
+```
+
+Без:
+
+- звука
+- изменения иконки
+- изменения clipboard

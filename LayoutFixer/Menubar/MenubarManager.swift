@@ -6,14 +6,16 @@ class MenubarManager: NSObject, NSMenuDelegate {
     private let settings: AppSettings
     private weak var orchestrator: FixOrchestrator?
     let statusIconAnimator: StatusIconAnimator
+    private let openSettingsAction: () -> Void
 
     private var enableMenuItem: NSMenuItem?
 
-    init(settings: AppSettings, orchestrator: FixOrchestrator) {
+    init(settings: AppSettings, orchestrator: FixOrchestrator, openSettings: @escaping () -> Void) {
         self.settings = settings
         self.orchestrator = orchestrator
         self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         self.statusIconAnimator = StatusIconAnimator(statusItem: statusItem)
+        self.openSettingsAction = openSettings
 
         super.init()
 
@@ -27,7 +29,7 @@ class MenubarManager: NSObject, NSMenuDelegate {
         menu.delegate = self
 
         let enableItem = NSMenuItem(
-            title: "Enable LayoutFixer",
+            title: "Enable LayoutSwitcher_CC",
             action: #selector(toggleEnabled),
             keyEquivalent: ""
         )
@@ -57,7 +59,7 @@ class MenubarManager: NSObject, NSMenuDelegate {
         menu.addItem(.separator())
 
         let aboutItem = NSMenuItem(
-            title: "About LayoutFixer",
+            title: "About LayoutSwitcher_CC",
             action: #selector(showAbout),
             keyEquivalent: ""
         )
@@ -65,7 +67,7 @@ class MenubarManager: NSObject, NSMenuDelegate {
         menu.addItem(aboutItem)
 
         let quitItem = NSMenuItem(
-            title: "Quit LayoutFixer",
+            title: "Quit LayoutSwitcher_CC",
             action: #selector(NSApplication.terminate(_:)),
             keyEquivalent: "q"
         )
@@ -84,8 +86,7 @@ class MenubarManager: NSObject, NSMenuDelegate {
     }
 
     @objc private func openSettings() {
-        NSApp.activate(ignoringOtherApps: true)
-        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+        openSettingsAction()
     }
 
     @objc private func openAccessibilitySettings() {
