@@ -121,11 +121,28 @@ class FixOrchestrator {
             return
         }
 
-        let ok = axWriter.write(convertedText: converted, replacing: range, in: element, selectResult: selectResult)
-        if !ok { clipboard.writeAndPaste(text: converted) }
+        // Prefer AX-select + typeText over kAXValueAttribute write.
+        // kAXValueAttribute updates the accessibility tree but NOT the visible DOM in
+        // Chromium/Electron webview panels (e.g. VS Code extension inputs). typeText()
+        // sends real keyboard events that modify the DOM regardless of the environment.
+        if axWriter.selectRange(range, in: element) {
+            typeText(converted)
+            // For user-selection path, re-select the result after a tick.
+            if selectResult {
+                try? await Task.sleep(nanoseconds: 10_000_000) // 10 ms
+                axWriter.positionCursor(after: converted, replacing: range, in: element, selectResult: true)
+            }
+            logger.info("AX write (typeText): \(text) → \(converted)")
+        } else {
+            // AX selection set failed — fall back to full kAXValueAttribute write + cursor set.
+            let ok = axWriter.write(convertedText: converted, replacing: range, in: element)
+            if !ok { clipboard.writeAndPaste(text: converted) }
+            try? await Task.sleep(nanoseconds: 20_000_000) // 20 ms
+            axWriter.positionCursor(after: converted, replacing: range, in: element, selectResult: selectResult)
+            logger.info("AX write (kAXValue fallback ok=\(ok)): \(text) → \(converted)")
+        }
 
         feedback(pair: pair)
-        logger.info("AX write ok=\(ok): \(text) → \(converted)")
     }
 
     // MARK: - Keyboard + clipboard fallback

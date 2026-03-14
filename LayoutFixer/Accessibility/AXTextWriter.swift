@@ -3,49 +3,23 @@ import ApplicationServices
 struct AXTextWriter {
     private let reader = AXTextReader()
 
-    func write(convertedText: String, replacing range: CFRange, in element: AXUIElement, selectResult: Bool) -> Bool {
-        // Strategy A: select the range, then replace via kAXSelectedTextAttribute.
-        // More targeted than full-text replacement — avoids cursor-reset-to-0 in
-        // apps (e.g. webview-based inputs like VS Code extensions) that ignore
-        // kAXSelectedTextRangeAttribute after a full kAXValueAttribute write.
-        if inPlaceReplace(convertedText: convertedText, range: range, in: element, selectResult: selectResult) {
-            return true
-        }
-        // Strategy B: write full kAXValueAttribute, then reposition cursor.
-        // Fallback for elements that don't support kAXSelectedTextAttribute writes.
-        return fullTextReplace(convertedText: convertedText, range: range, in: element, selectResult: selectResult)
+    /// Selects the given UTF-16 range in element via kAXSelectedTextRangeAttribute.
+    /// Returns true if the AX set call succeeded.
+    /// In webview-based inputs this also updates the DOM selection, enabling subsequent
+    /// typeText() calls to replace exactly the right span of text.
+    func selectRange(_ range: CFRange, in element: AXUIElement) -> Bool {
+        var r = range
+        guard let axRange = AXValueCreate(.cfRange, &r) else { return false }
+        return AXUIElementSetAttributeValue(
+            element, kAXSelectedTextRangeAttribute as CFString, axRange
+        ) == .success
     }
 
-    // MARK: - Private
-
-    private func inPlaceReplace(convertedText: String, range: CFRange, in element: AXUIElement, selectResult: Bool) -> Bool {
-        // Step 1: select the target range
-        var selectRange = range
-        guard let axSelectRange = AXValueCreate(.cfRange, &selectRange),
-              AXUIElementSetAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, axSelectRange) == .success
-        else { return false }
-
-        // Step 2: replace the selection with converted text
-        guard AXUIElementSetAttributeValue(element, kAXSelectedTextAttribute as CFString, convertedText as CFTypeRef) == .success
-        else { return false }
-
-        // Step 3: always reposition cursor after replacement.
-        // - selectResult=true (user had selection): re-select the converted text.
-        // - selectResult=false (lastWord): collapse to cursor at end of replacement.
-        // Explicitly collapsing is required because some webview-based inputs (e.g. VS Code
-        // extension panels) leave the replaced text selected after kAXSelectedTextAttribute
-        // write, which would make the next hotkey read the already-converted selection.
-        var cursorRange = selectResult
-            ? CFRange(location: range.location, length: convertedText.utf16.count)
-            : CFRange(location: range.location + convertedText.utf16.count, length: 0)
-        if let axCursorRange = AXValueCreate(.cfRange, &cursorRange) {
-            AXUIElementSetAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, axCursorRange)
-        }
-
-        return true
-    }
-
-    private func fullTextReplace(convertedText: String, range: CFRange, in element: AXUIElement, selectResult: Bool) -> Bool {
+    /// Replaces the given UTF-16 range with convertedText via a full kAXValueAttribute write.
+    /// NOTE: in Chromium-based webview panels this updates the AX tree but NOT the visible DOM.
+    /// Prefer selectRange() + caller-side typeText() for those environments.
+    /// Returns true on success.
+    func write(convertedText: String, replacing range: CFRange, in element: AXUIElement) -> Bool {
         guard let fullText = reader.fullText(of: element) else { return false }
 
         let utf16 = fullText.utf16
@@ -59,16 +33,20 @@ struct AXTextWriter {
         newText += convertedText
         newText += String(utf16[endIdx...])!
 
-        let result = AXUIElementSetAttributeValue(
+        return AXUIElementSetAttributeValue(
             element,
             kAXValueAttribute as CFString,
             newText as CFTypeRef
-        )
+        ) == .success
+    }
 
-        guard result == .success else { return false }
-
-        // If user had text selected, keep the converted text selected.
-        // If it was a cursor-only position (lastWord), just place cursor at end.
+    /// Sets cursor (or selection) after a write.
+    /// Call this after an async yield to avoid being overridden by the host app's
+    /// internal async cursor reset that follows a kAXValueAttribute write.
+    func positionCursor(after convertedText: String, replacing range: CFRange,
+                        in element: AXUIElement, selectResult: Bool) {
+        // selectResult=true  → keep the converted text selected (user had a selection)
+        // selectResult=false → place cursor at end of replacement (lastWord path)
         var newRange = selectResult
             ? CFRange(location: range.location, length: convertedText.utf16.count)
             : CFRange(location: range.location + convertedText.utf16.count, length: 0)
@@ -79,7 +57,5 @@ struct AXTextWriter {
                 axRange
             )
         }
-
-        return true
     }
 }
